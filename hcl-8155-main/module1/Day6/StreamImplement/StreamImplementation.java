@@ -8,6 +8,7 @@ public class StreamImplementation {
         ArrayList<String> strlist = new ArrayList<>();
 
         intlist.add(5);
+        intlist.add(10);
         strlist.add("Hello");
 //        intlist.stream().distinct().forEach(System.out::println);
 //        strlist.stream().distinct().forEach(System.out::println);
@@ -16,6 +17,11 @@ public class StreamImplementation {
         strlist.add("ravi");
         strlist.add("rajul");
         strlist.stream().filter(s -> s.startsWith("r")&&s.endsWith("l")).forEach(System.out::println);
+
+        intlist.stream().map(i -> i * 8).forEach(System.out::println);
+
+        intlist.stream().sorted().forEach(System.out::println);
+        strlist.stream().sorted().forEach(System.out::println);
 
     }
 }
