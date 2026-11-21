@@ -10,7 +10,7 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@OpenAPIDefinition(
+//@OpenAPIDefinition(
         info = @Info(
                 title = "Demo API",
                 version = "Version 1.0",
