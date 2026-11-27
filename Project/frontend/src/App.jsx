@@ -120,7 +120,14 @@ function App() {
         );
       }
 
+      if (!data.token) {
+        throw new Error("Login successful, but JWT token was not received.");
+      }
+
+      // Store user details and JWT token
       localStorage.setItem("user", JSON.stringify(data));
+      localStorage.setItem("token", data.token);
+
       setUser(data);
 
     } catch (error) {
@@ -133,6 +140,7 @@ function App() {
   // LOGOUT
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
 
     setUser(null);
     setEmail("");
@@ -180,7 +188,6 @@ function App() {
 
         <form onSubmit={isRegister ? handleRegister : handleLogin}>
 
-          {/* LOGIN ROLE */}
           {!isRegister && (
             <select
               className="role-select"
@@ -195,7 +202,6 @@ function App() {
             </select>
           )}
 
-          {/* REGISTRATION ROLE */}
           {isRegister && (
             <select
               className="role-select"

@@ -3,6 +3,7 @@ package com.example.backend.controller;
 
 import com.example.backend.entity.user;
 import com.example.backend.service.UserService;
+import com.example.backend.security.JwtService;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -15,9 +16,14 @@ import java.util.Map;
 public class AuthController {
 
     private final UserService userService;
+    private final JwtService jwtService;
 
-    public AuthController(UserService userService) {
+    public AuthController(
+            UserService userService,
+            JwtService jwtService
+    ) {
         this.userService = userService;
+        this.jwtService = jwtService;
     }
 
     // REGISTER
@@ -56,6 +62,9 @@ public class AuthController {
                 request.get("password")
         );
 
+        // Generate JWT token
+        String token = jwtService.generateToken(loggedInUser);
+
         Map<String, Object> response = new HashMap<>();
 
         response.put("message", "Login successful");
@@ -63,6 +72,7 @@ public class AuthController {
         response.put("name", loggedInUser.getName());
         response.put("email", loggedInUser.getEmail());
         response.put("role", loggedInUser.getRole());
+        response.put("token", token);
 
         return response;
     }

@@ -9,13 +9,29 @@ function AdminDashboard({ user, onLogout }) {
   const [filter, setFilter] = useState("ALL");
   const [selectedComplaint, setSelectedComplaint] = useState(null);
 
+  // JWT token
+  const token = localStorage.getItem("token");
+
+  // Common Authorization headers
+  const getHeaders = () => ({
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json"
+  });
+
   const fetchComplaints = async () => {
     try {
       const response = await fetch(
-        "http://localhost:8080/api/complaints"
+        "http://localhost:8080/api/complaints",
+        {
+          method: "GET",
+          headers: getHeaders()
+        }
       );
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error("Access denied. Please login again as Admin.");
+        }
         throw new Error("Unable to load complaints");
       }
 
@@ -35,10 +51,16 @@ function AdminDashboard({ user, onLogout }) {
     try {
       const response = await fetch(
         `http://localhost:8080/api/complaints/${id}/status?status=${status}`,
-        { method: "PUT" }
+        {
+          method: "PUT",
+          headers: getHeaders()
+        }
       );
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error("Access denied. Please login again as Admin.");
+        }
         throw new Error("Status update failed");
       }
 
@@ -62,12 +84,15 @@ function AdminDashboard({ user, onLogout }) {
   };
 
   const total = complaints.length;
+
   const pending = complaints.filter(
     (c) => c.status === "PENDING"
   ).length;
+
   const inProgress = complaints.filter(
     (c) => c.status === "IN_PROGRESS"
   ).length;
+
   const resolved = complaints.filter(
     (c) => c.status === "RESOLVED"
   ).length;
