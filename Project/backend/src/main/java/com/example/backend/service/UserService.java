@@ -4,8 +4,9 @@ package com.example.backend.service;
 import com.example.backend.entity.user;
 import com.example.backend.repository.UserRepository;
 
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -13,57 +14,90 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
-
     private final BCryptPasswordEncoder passwordEncoder =
             new BCryptPasswordEncoder();
+
+    @Value("${app.admin.invitation-code}")
+    private String adminInvitationCode;
 
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
-    // Register a new user
-    public user registerUser(user user) {
+    // REGISTER USER OR ADMIN
+    public user registerUser(
+            String name,
+            String email,
+            String password,
+            String role,
+            String adminCode
+    ) {
 
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Email already exists");
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email already registered");
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRole("USER");
+        String selectedRole = role == null
+                ? "USER"
+                : role.toUpperCase();
 
-        return userRepository.save(user);
+        if (!selectedRole.equals("USER") &&
+                !selectedRole.equals("ADMIN")) {
+            throw new RuntimeException("Invalid role");
+        }
+
+        if (selectedRole.equals("ADMIN")) {
+            if (adminCode == null ||
+                    !adminInvitationCode.equals(adminCode)) {
+                throw new RuntimeException(
+                        "Invalid admin invitation code"
+                );
+            }
+        }
+
+        user newUser = new user();
+
+        newUser.setName(name);
+        newUser.setEmail(email);
+        newUser.setPassword(passwordEncoder.encode(password));
+        newUser.setRole(selectedRole);
+
+        return userRepository.save(newUser);
     }
 
-    // Get all users
+    // LOGIN
+    public user loginUser(String email, String password) {
+
+        user existingUser = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(
+                password,
+                existingUser.getPassword())) {
+
+            throw new RuntimeException("Invalid password");
+        }
+
+        return existingUser;
+    }
+
+    // GET ALL USERS
     public List<user> getAllUsers() {
         return userRepository.findAll();
     }
 
-    // Get user by ID
+    // GET USER BY ID
     public user getUserById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() ->
-                    new RuntimeException("User not found"));
+                        new RuntimeException("User not found"));
     }
 
-    // Get user by email
+    // GET USER BY EMAIL
     public user getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                    new RuntimeException("User not found"));
-    }
-
-    // Login user
-    public user loginUser(String email, String password) {
-
-        user user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                    new RuntimeException("User not found"));
-
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid password");
-        }
-
-        return user;
+                        new RuntimeException("User not found"));
     }
 }
