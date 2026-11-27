@@ -9,6 +9,7 @@ import com.example.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class ComplaintService {
@@ -24,21 +25,26 @@ public class ComplaintService {
         this.userRepository = userRepository;
     }
 
-    // Submit a new complaint
-    public Complaint createComplaint(
-            Complaint complaint, Long userId) {
-
-        user user = userRepository.findById(userId)
+    // Find logged-in user using JWT email
+    private user getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
                 .orElseThrow(() ->
                     new RuntimeException("User not found"));
+    }
 
-        complaint.setUser(user);
+    // Submit complaint for logged-in user
+    public Complaint createComplaint(
+            Complaint complaint, String email) {
+
+        user loggedInUser = getUserByEmail(email);
+
+        complaint.setUser(loggedInUser);
         complaint.setStatus("PENDING");
 
         return complaintRepository.save(complaint);
     }
 
-    // Get all complaints
+    // Get all complaints (Admin)
     public List<Complaint> getAllComplaints() {
         return complaintRepository.findAll();
     }
@@ -50,12 +56,29 @@ public class ComplaintService {
                     new RuntimeException("Complaint not found"));
     }
 
-    // Get complaints of a particular user
-    public List<Complaint> getUserComplaints(Long userId) {
-        return complaintRepository.findByUserId(userId);
+    // Get only logged-in user's complaints
+    public List<Complaint> getUserComplaintsByEmail(String email) {
+        user loggedInUser = getUserByEmail(email);
+
+        return complaintRepository.findByUserId(loggedInUser.getId());
     }
 
-    // Update complaint status
+    // Get a complaint only if it belongs to logged-in user
+    public Complaint getComplaintByIdForUser(
+            Long id, String email) {
+
+        Complaint complaint = getComplaintById(id);
+
+        if (complaint.getUser() == null ||
+                !Objects.equals(
+                    complaint.getUser().getEmail(), email)) {
+            throw new RuntimeException("Access denied");
+        }
+
+        return complaint;
+    }
+
+    // Update complaint status (Admin)
     public Complaint updateComplaintStatus(
             Long id, String status) {
 
@@ -66,10 +89,11 @@ public class ComplaintService {
         return complaintRepository.save(complaint);
     }
 
-    // Delete complaint
-    public void deleteComplaint(Long id) {
+    // Delete only logged-in user's complaint
+    public void deleteComplaintForUser(
+            Long id, String email) {
 
-        Complaint complaint = getComplaintById(id);
+        Complaint complaint = getComplaintByIdForUser(id, email);
 
         complaintRepository.delete(complaint);
     }

@@ -5,6 +5,7 @@ import com.example.backend.entity.Complaint;
 import com.example.backend.service.ComplaintService;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,19 +21,22 @@ public class ComplaintController {
         this.complaintService = complaintService;
     }
 
-    // Submit a new complaint
+    // Submit complaint using logged-in user's JWT identity
     @PostMapping
     public ResponseEntity<Complaint> createComplaint(
             @RequestBody Complaint complaint,
-            @RequestParam Long userId) {
+            Authentication authentication) {
 
         Complaint savedComplaint =
-                complaintService.createComplaint(complaint, userId);
+                complaintService.createComplaint(
+                    complaint,
+                    authentication.getName()
+                );
 
         return ResponseEntity.ok(savedComplaint);
     }
 
-    // Get all complaints
+    // Get all complaints (Admin only through SecurityConfig)
     @GetMapping
     public ResponseEntity<List<Complaint>> getAllComplaints() {
 
@@ -41,27 +45,36 @@ public class ComplaintController {
         );
     }
 
-    // Get complaint by ID
+    // Get a complaint only if it belongs to logged-in user
     @GetMapping("/{id}")
     public ResponseEntity<Complaint> getComplaintById(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
-                complaintService.getComplaintById(id)
+                complaintService.getComplaintByIdForUser(
+                    id,
+                    authentication.getName()
+                )
         );
     }
 
-    // Get complaints of a particular user
+    // Get logged-in user's complaints.
+    // userId path variable is retained for frontend compatibility,
+    // but it is NOT used for identifying the user.
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Complaint>> getUserComplaints(
-            @PathVariable Long userId) {
+            @PathVariable Long userId,
+            Authentication authentication) {
 
         return ResponseEntity.ok(
-                complaintService.getUserComplaints(userId)
+                complaintService.getUserComplaintsByEmail(
+                    authentication.getName()
+                )
         );
     }
 
-    // Update complaint status
+    // Update complaint status (Admin only through SecurityConfig)
     @PutMapping("/{id}/status")
     public ResponseEntity<Complaint> updateStatus(
             @PathVariable Long id,
@@ -72,13 +85,19 @@ public class ComplaintController {
         );
     }
 
-    // Delete complaint
+    // Delete only the logged-in user's complaint
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteComplaint(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            Authentication authentication) {
 
-        complaintService.deleteComplaint(id);
+        complaintService.deleteComplaintForUser(
+                id,
+                authentication.getName()
+        );
 
-        return ResponseEntity.ok("Complaint deleted successfully");
+        return ResponseEntity.ok(
+                "Complaint deleted successfully"
+        );
     }
 }

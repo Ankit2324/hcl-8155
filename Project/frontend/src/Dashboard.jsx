@@ -9,13 +9,27 @@ function Dashboard({ user, onLogout }) {
   const [category, setCategory] = useState("Technical");
   const [message, setMessage] = useState("");
 
+  const token = localStorage.getItem("token");
+
+  const getHeaders = () => ({
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json"
+  });
+
   const fetchComplaints = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8080/api/complaints/user/${user.id}`
+        `http://localhost:8080/api/complaints/user/${user.id}`,
+        {
+          method: "GET",
+          headers: getHeaders()
+        }
       );
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error("Access denied. Please login again.");
+        }
         throw new Error("Could not fetch complaints");
       }
 
@@ -38,18 +52,19 @@ function Dashboard({ user, onLogout }) {
         `http://localhost:8080/api/complaints?userId=${user.id}`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getHeaders(),
           body: JSON.stringify({
             title,
             description,
-            category,
-          }),
+            category
+          })
         }
       );
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error("Access denied. Please login again.");
+        }
         throw new Error("Complaint submission failed");
       }
 
@@ -74,7 +89,6 @@ function Dashboard({ user, onLogout }) {
 
   const formatDate = (date) => {
     if (!date) return "Not available";
-
     return new Date(date).toLocaleString("en-IN");
   };
 
