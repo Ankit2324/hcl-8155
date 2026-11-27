@@ -4,11 +4,10 @@ package com.example.backend.controller;
 import com.example.backend.entity.user;
 import com.example.backend.service.UserService;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -21,37 +20,50 @@ public class AuthController {
         this.userService = userService;
     }
 
-    // User Registration
+    // REGISTER
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody user user) {
+    public Map<String, Object> register(
+            @RequestBody Map<String, String> request
+    ) {
 
-        user savedUser = userService.registerUser(user);
+        user newUser = userService.registerUser(
+                request.get("name"),
+                request.get("email"),
+                request.get("password"),
+                request.get("role"),
+                request.get("adminCode")
+        );
 
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Registration successful");
-        response.put("id", savedUser.getId());
-        response.put("name", savedUser.getName());
-        response.put("email", savedUser.getEmail());
 
-        return ResponseEntity.ok(response);
+        response.put("message", "Registration successful");
+        response.put("id", newUser.getId());
+        response.put("name", newUser.getName());
+        response.put("email", newUser.getEmail());
+        response.put("role", newUser.getRole());
+
+        return response;
     }
 
-    // User Login
+    // LOGIN
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
+    public Map<String, Object> login(
+            @RequestBody Map<String, String> request
+    ) {
 
-        user user = userService.loginUser(
+        user loggedInUser = userService.loginUser(
                 request.get("email"),
                 request.get("password")
         );
 
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "Login successful");
-        response.put("id", user.getId());
-        response.put("name", user.getName());
-        response.put("email", user.getEmail());
-        response.put("role", user.getRole());
 
-        return ResponseEntity.ok(response);
+        response.put("message", "Login successful");
+        response.put("id", loggedInUser.getId());
+        response.put("name", loggedInUser.getName());
+        response.put("email", loggedInUser.getEmail());
+        response.put("role", loggedInUser.getRole());
+
+        return response;
     }
 }
