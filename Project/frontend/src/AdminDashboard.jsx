@@ -7,6 +7,7 @@ function AdminDashboard({ user, onLogout }) {
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
 
   const fetchComplaints = async () => {
     try {
@@ -41,22 +42,41 @@ function AdminDashboard({ user, onLogout }) {
         throw new Error("Status update failed");
       }
 
-      setMessage("Complaint status updated successfully!");
       await fetchComplaints();
+
+      setSelectedComplaint((previous) =>
+        previous?.id === id
+          ? { ...previous, status }
+          : previous
+      );
+
+      setMessage("Complaint status updated successfully!");
     } catch (error) {
       setMessage(error.message);
     }
   };
 
+  const formatDate = (date) => {
+    if (!date) return "Not available";
+    return new Date(date).toLocaleString("en-IN");
+  };
+
   const total = complaints.length;
-  const pending = complaints.filter(c => c.status === "PENDING").length;
-  const inProgress = complaints.filter(c => c.status === "IN_PROGRESS").length;
-  const resolved = complaints.filter(c => c.status === "RESOLVED").length;
+  const pending = complaints.filter(
+    (c) => c.status === "PENDING"
+  ).length;
+  const inProgress = complaints.filter(
+    (c) => c.status === "IN_PROGRESS"
+  ).length;
+  const resolved = complaints.filter(
+    (c) => c.status === "RESOLVED"
+  ).length;
 
   const filteredComplaints = complaints.filter((complaint) => {
-    const matchesSearch = complaint.title
-      ?.toLowerCase()
-      .includes(search.toLowerCase());
+    const matchesSearch =
+      complaint.title?.toLowerCase().includes(search.toLowerCase()) ||
+      complaint.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      complaint.user?.email?.toLowerCase().includes(search.toLowerCase());
 
     const matchesFilter =
       filter === "ALL" || complaint.status === filter;
@@ -66,8 +86,10 @@ function AdminDashboard({ user, onLogout }) {
 
   return (
     <div className="admin-dashboard">
+
       <header className="admin-header">
         <h2>Admin Dashboard</h2>
+
         <div>
           <span>Welcome, {user.name}</span>
           <button onClick={onLogout}>Logout</button>
@@ -75,6 +97,7 @@ function AdminDashboard({ user, onLogout }) {
       </header>
 
       <main className="admin-content">
+
         <h2>All Complaints</h2>
 
         {message && <p>{message}</p>}
@@ -84,14 +107,17 @@ function AdminDashboard({ user, onLogout }) {
             <h3>Total Complaints</h3>
             <p>{total}</p>
           </div>
+
           <div className="stat-card">
             <h3>Pending</h3>
             <p>{pending}</p>
           </div>
+
           <div className="stat-card">
             <h3>In Progress</h3>
             <p>{inProgress}</p>
           </div>
+
           <div className="stat-card">
             <h3>Resolved</h3>
             <p>{resolved}</p>
@@ -101,7 +127,7 @@ function AdminDashboard({ user, onLogout }) {
         <div className="admin-filters">
           <input
             type="text"
-            placeholder="Search complaint by title..."
+            placeholder="Search by title, user name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -125,10 +151,12 @@ function AdminDashboard({ user, onLogout }) {
               <tr>
                 <th>ID</th>
                 <th>Title</th>
-                <th>Description</th>
+                <th>User Name</th>
+                <th>User Email</th>
                 <th>Category</th>
                 <th>Status</th>
                 <th>Update Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
 
@@ -137,9 +165,11 @@ function AdminDashboard({ user, onLogout }) {
                 <tr key={complaint.id}>
                   <td>{complaint.id}</td>
                   <td>{complaint.title}</td>
-                  <td>{complaint.description}</td>
+                  <td>{complaint.user?.name || "Not available"}</td>
+                  <td>{complaint.user?.email || "Not available"}</td>
                   <td>{complaint.category}</td>
                   <td>{complaint.status}</td>
+
                   <td>
                     <select
                       value={complaint.status}
@@ -152,6 +182,14 @@ function AdminDashboard({ user, onLogout }) {
                       <option value="RESOLVED">Resolved</option>
                     </select>
                   </td>
+
+                  <td>
+                    <button
+                      onClick={() => setSelectedComplaint(complaint)}
+                    >
+                      View Details
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -162,6 +200,74 @@ function AdminDashboard({ user, onLogout }) {
           )}
         </div>
       </main>
+
+      {selectedComplaint && (
+        <div className="complaint-modal-overlay">
+          <div className="complaint-modal">
+
+            <h2>Complaint Details</h2>
+
+            <h3>User Information</h3>
+
+            <p>
+              <strong>User Name:</strong>{" "}
+              {selectedComplaint.user?.name || "Not available"}
+            </p>
+
+            <p>
+              <strong>User Email:</strong>{" "}
+              {selectedComplaint.user?.email || "Not available"}
+            </p>
+
+            <hr />
+
+            <h3>Complaint Information</h3>
+
+            <p>
+              <strong>Complaint ID:</strong>{" "}
+              {selectedComplaint.id}
+            </p>
+
+            <p>
+              <strong>Title:</strong>{" "}
+              {selectedComplaint.title}
+            </p>
+
+            <p>
+              <strong>Description:</strong>{" "}
+              {selectedComplaint.description}
+            </p>
+
+            <p>
+              <strong>Category:</strong>{" "}
+              {selectedComplaint.category}
+            </p>
+
+            <p>
+              <strong>Status:</strong>{" "}
+              {selectedComplaint.status}
+            </p>
+
+            <p>
+              <strong>Submitted On:</strong>{" "}
+              {formatDate(selectedComplaint.createdAt)}
+            </p>
+
+            <p>
+              <strong>Last Updated:</strong>{" "}
+              {formatDate(selectedComplaint.updatedAt)}
+            </p>
+
+            <button
+              onClick={() => setSelectedComplaint(null)}
+            >
+              Close
+            </button>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

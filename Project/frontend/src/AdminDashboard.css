@@ -126,3 +126,43 @@
     padding: 15px;
   }
 }
+
+.complaint-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.complaint-modal {
+  background: white;
+  padding: 30px;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 12px;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+}
+
+.complaint-modal h2 {
+  margin-top: 0;
+  color: #1e293b;
+}
+
+.complaint-modal p {
+  margin: 15px 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.complaint-modal button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 6px;
+  cursor: pointer;
+}

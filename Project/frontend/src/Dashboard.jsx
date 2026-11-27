@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import "./Dashboard.css";
 
@@ -27,7 +28,7 @@ function Dashboard({ user, onLogout }) {
 
   useEffect(() => {
     fetchComplaints();
-  }, []);
+  }, [user.id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,16 +58,32 @@ function Dashboard({ user, onLogout }) {
       setDescription("");
       setCategory("Technical");
 
-      fetchComplaints();
+      await fetchComplaints();
     } catch (error) {
       setMessage(error.message);
     }
   };
 
+  const getStatusStep = (status) => {
+    if (status === "RESOLVED") return 2;
+    if (status === "IN_PROGRESS") return 1;
+    return 0;
+  };
+
+  const steps = ["PENDING", "IN_PROGRESS", "RESOLVED"];
+
+  const formatDate = (date) => {
+    if (!date) return "Not available";
+
+    return new Date(date).toLocaleString("en-IN");
+  };
+
   return (
     <div className="dashboard">
+
       <header className="dashboard-header">
         <h2>Complaint Management System</h2>
+
         <div>
           <span>Welcome, {user.name}</span>
           <button onClick={onLogout}>Logout</button>
@@ -74,6 +91,7 @@ function Dashboard({ user, onLogout }) {
       </header>
 
       <main className="dashboard-content">
+
         <h2>User Dashboard</h2>
 
         <section className="complaint-form">
@@ -117,16 +135,64 @@ function Dashboard({ user, onLogout }) {
           {complaints.length === 0 ? (
             <p>No complaints found.</p>
           ) : (
-            complaints.map((complaint) => (
-              <div className="complaint-card" key={complaint.id}>
-                <h4>{complaint.title}</h4>
-                <p>{complaint.description}</p>
-                <p>Category: {complaint.category}</p>
-                <p>Status: {complaint.status}</p>
-              </div>
-            ))
+            complaints.map((complaint) => {
+              const currentStep = getStatusStep(complaint.status);
+
+              return (
+                <div className="complaint-card" key={complaint.id}>
+
+                  <h4>{complaint.title}</h4>
+
+                  <p>{complaint.description}</p>
+
+                  <p>
+                    <strong>Complaint ID:</strong> {complaint.id}
+                  </p>
+
+                  <p>
+                    <strong>Category:</strong> {complaint.category}
+                  </p>
+
+                  <p>
+                    <strong>Submitted On:</strong>{" "}
+                    {formatDate(complaint.createdAt)}
+                  </p>
+
+                  <p>
+                    <strong>Last Updated:</strong>{" "}
+                    {formatDate(complaint.updatedAt)}
+                  </p>
+
+                  <p>
+                    <strong>Current Status:</strong>{" "}
+                    {complaint.status?.replace("_", " ")}
+                  </p>
+
+                  <h4>Complaint Tracking</h4>
+
+                  <div className="tracking-timeline">
+                    {steps.map((step, index) => (
+                      <div
+                        className={`tracking-step ${
+                          index <= currentStep ? "completed" : ""
+                        }`}
+                        key={step}
+                      >
+                        <div className="tracking-circle">
+                          {index < currentStep ? "✓" : index + 1}
+                        </div>
+
+                        <span>{step.replace("_", " ")}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                </div>
+              );
+            })
           )}
         </section>
+
       </main>
     </div>
   );
