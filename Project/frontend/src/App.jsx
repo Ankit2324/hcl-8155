@@ -1,25 +1,43 @@
+
 import { useState } from "react";
 import Dashboard from "./Dashboard";
+import AdminDashboard from "./AdminDashboard";
 import "./App.css";
 
 function App() {
   const [isRegister, setIsRegister] = useState(false);
-  const [user, setUser] = useState(
-    JSON.parse(localStorage.getItem("user")) || null
-  );
+
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user")) || null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [loginRole, setLoginRole] = useState("USER");
+  const [registerRole, setRegisterRole] = useState("USER");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [adminCode, setAdminCode] = useState("");
+
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // REGISTRATION
   const handleRegister = async (e) => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
       setMessage("Passwords do not match!");
+      return;
+    }
+
+    if (registerRole === "ADMIN" && !adminCode.trim()) {
+      setMessage("Admin invitation code is required!");
       return;
     }
 
@@ -31,8 +49,16 @@ function App() {
         "http://localhost:8080/api/auth/register",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            role: registerRole,
+            adminCode: registerRole === "ADMIN" ? adminCode : null,
+          }),
         }
       );
 
@@ -43,9 +69,16 @@ function App() {
       }
 
       setMessage("Registration successful! Please login.");
+
       setIsRegister(false);
+      setLoginRole(registerRole);
+      setName("");
+      setEmail("");
       setPassword("");
       setConfirmPassword("");
+      setAdminCode("");
+      setRegisterRole("USER");
+
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -53,6 +86,7 @@ function App() {
     }
   };
 
+  // LOGIN
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -64,8 +98,13 @@ function App() {
         "http://localhost:8080/api/auth/login",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
         }
       );
 
@@ -75,8 +114,15 @@ function App() {
         throw new Error(data.message || "Login failed");
       }
 
+      if (String(data.role).toUpperCase() !== loginRole) {
+        throw new Error(
+          `This account is registered as ${data.role}. Please select the correct login type.`
+        );
+      }
+
       localStorage.setItem("user", JSON.stringify(data));
       setUser(data);
+
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -84,28 +130,86 @@ function App() {
     }
   };
 
+  // LOGOUT
   const handleLogout = () => {
     localStorage.removeItem("user");
+
     setUser(null);
     setEmail("");
     setPassword("");
+    setName("");
+    setConfirmPassword("");
+    setAdminCode("");
     setMessage("");
+    setLoginRole("USER");
+    setRegisterRole("USER");
+    setIsRegister(false);
   };
 
+  // DASHBOARD
   if (user) {
-    return <Dashboard user={user} onLogout={handleLogout} />;
+    if (String(user.role).toUpperCase() === "ADMIN") {
+      return (
+        <AdminDashboard
+          user={user}
+          onLogout={handleLogout}
+        />
+      );
+    }
+
+    return (
+      <Dashboard
+        user={user}
+        onLogout={handleLogout}
+      />
+    );
   }
 
+  // LOGIN AND REGISTRATION PAGE
   return (
     <div className="login-container">
       <div className="login-box">
+
         <h1>Complaint Management System</h1>
 
-        <h2>{isRegister ? "Create Account" : "Login"}</h2>
+        <h2>{isRegister ? "Create Account" : "Welcome Back"}</h2>
 
-        {message && <p className="message">{message}</p>}
+        {message && (
+          <p className="message">{message}</p>
+        )}
 
         <form onSubmit={isRegister ? handleRegister : handleLogin}>
+
+          {/* LOGIN ROLE */}
+          {!isRegister && (
+            <select
+              className="role-select"
+              value={loginRole}
+              onChange={(e) => {
+                setLoginRole(e.target.value);
+                setMessage("");
+              }}
+            >
+              <option value="USER">User Login</option>
+              <option value="ADMIN">Admin Login</option>
+            </select>
+          )}
+
+          {/* REGISTRATION ROLE */}
+          {isRegister && (
+            <select
+              className="role-select"
+              value={registerRole}
+              onChange={(e) => {
+                setRegisterRole(e.target.value);
+                setMessage("");
+              }}
+            >
+              <option value="USER">Register as User</option>
+              <option value="ADMIN">Register as Admin</option>
+            </select>
+          )}
+
           {isRegister && (
             <input
               type="text"
@@ -133,13 +237,25 @@ function App() {
           />
 
           {isRegister && (
-            <input
-              type="password"
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
+            <>
+              <input
+                type="password"
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+
+              {registerRole === "ADMIN" && (
+                <input
+                  type="password"
+                  placeholder="Admin Invitation Code"
+                  value={adminCode}
+                  onChange={(e) => setAdminCode(e.target.value)}
+                  required
+                />
+              )}
+            </>
           )}
 
           <button type="submit" disabled={loading}>
@@ -149,6 +265,7 @@ function App() {
               ? "Register"
               : "Login"}
           </button>
+
         </form>
 
         <p>
@@ -157,19 +274,21 @@ function App() {
             : "Don't have an account?"}
 
           <span
+            className="switch-link"
             onClick={() => {
               setIsRegister(!isRegister);
               setMessage("");
-            }}
-            style={{
-              color: "blue",
-              cursor: "pointer",
-              marginLeft: "6px",
+              setName("");
+              setEmail("");
+              setPassword("");
+              setConfirmPassword("");
+              setAdminCode("");
             }}
           >
-            {isRegister ? "Login" : "Register"}
+            {isRegister ? " Login" : " Register"}
           </span>
         </p>
+
       </div>
     </div>
   );
