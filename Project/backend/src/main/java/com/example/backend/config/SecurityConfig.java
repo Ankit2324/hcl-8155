@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -23,7 +24,8 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
@@ -33,28 +35,37 @@ public class SecurityConfig {
 
         http
             .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+            .cors(cors ->
+                cors.configurationSource(corsConfigurationSource())
+            )
+
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+
             .authorizeHttpRequests(auth -> auth
 
-                // Registration and login
+                // Login and registration
                 .requestMatchers("/api/auth/**").permitAll()
 
-                // Only ADMIN can view all complaints
+                // Admin-only notification APIs
+                .requestMatchers("/api/notifications/**").hasRole("ADMIN")
+
+                // Admin-only complaint APIs
                 .requestMatchers(HttpMethod.GET, "/api/complaints")
-                .hasRole("ADMIN")
+                    .hasRole("ADMIN")
 
-                // Only ADMIN can update complaint status
                 .requestMatchers(HttpMethod.PUT, "/api/complaints/*/status")
-                .hasRole("ADMIN")
+                    .hasRole("ADMIN")
 
-                // Other complaint operations require authentication
+                // Other complaint APIs require login
                 .requestMatchers("/api/complaints/**").authenticated()
 
+                // All remaining APIs require authentication
                 .anyRequest().authenticated()
             )
+
             .addFilterBefore(
                 jwtAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter.class
